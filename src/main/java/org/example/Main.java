@@ -21,12 +21,12 @@ public class Main {
         final String filepath = "/Users/krekar83/workspace/doc_samples/";
         final String[] utf8CheckFiles = {
                 "o_csv_small_euckr.csv",
-                "o_csv_small_utf8.csv"
+                "o_csv_small_utf8.csv",
+                "x_csv_large.csv" // 2GB!!!
         };
 
         final String[] generalFiles = {
                 "o_excel_small_utf8.xlsx",
-                "o_excel_large_utf8.xlsx", // 2GB!!!
                 "o_doc.doc",
                 "o_docx.docx",
                 "o_jpeg.jpg",
@@ -38,21 +38,22 @@ public class Main {
                 "o_txt.txt",
                 "o_xls.xls",
                 "o_xlsx.xlsx",
+                "o_xml.xml",
                 "o_zip.zip",
-                "x_csv_small.csv",
                 "x_excel_small_utf8.xlsx",
                 "x_doc.doc",
                 "x_docx.docx",
                 "x_jpeg.jpg",
                 "x_jpg.jpg",
                 "x_pdf.pdf",
-                "x_png.jpg",
+                "x_png.png",
                 "x_ppt.ppt",
                 "x_pptx.pptx",
                 "x_txt.txt",
                 "x_xls.xls",
                 "x_xlsx.xlsx",
-                "x_zip.jpg"
+                "x_xml.xml",
+                "x_zip.zip"
         };
 
         final int totalFiles = utf8CheckFiles.length + generalFiles.length;
@@ -63,7 +64,15 @@ public class Main {
         System.out.println();
 
         int processed = 0;
+        System.out.println("[UTF-8 인코딩 검증 세트]");
+        System.out.printf("파일 개수: %d개%n", utf8CheckFiles.length);
+        System.out.println();
         processed = runValidationSet(filepath, utf8CheckFiles, true, processed, totalFiles);
+        
+        System.out.println();
+        System.out.println("[일반 검증 세트]");
+        System.out.printf("파일 개수: %d개%n", generalFiles.length);
+        System.out.println();
         runValidationSet(filepath, generalFiles, false, processed, totalFiles);
 
         System.out.println("=".repeat(80));
@@ -136,21 +145,27 @@ public class Main {
 
                 // 검증 결과 출력
                 System.out.printf("🔍 검증 결과:%n");
-                Class<?> recordClass = result.getClass();
-                if (recordClass.isRecord()) {
-                    RecordComponent[] components = recordClass.getRecordComponents();
-                    for (RecordComponent component : components) {
-                        try {
-                            var value = component.getAccessor().invoke(result);
-                            String fieldName = component.getName();
-                            String displayValue = formatValue(fieldName, value);
-                            System.out.printf("   - %s: %s%n", fieldName, displayValue);
-                        } catch (Exception e) {
-                            System.out.printf("   - %s: <값 조회 실패>%n", component.getName());
+                try {
+                    Class<?> recordClass = result.getClass();
+                    if (recordClass.isRecord()) {
+                        RecordComponent[] components = recordClass.getRecordComponents();
+                        for (RecordComponent component : components) {
+                            try {
+                                var value = component.getAccessor().invoke(result);
+                                String fieldName = component.getName();
+                                String displayValue = formatValue(fieldName, value);
+                                System.out.printf("   - %s: %s%n", fieldName, displayValue);
+                            } catch (Exception e) {
+                                System.out.printf("   - %s: <값 조회 실패: %s>%n", component.getName(), e.getMessage());
+                            }
                         }
                     }
+                } catch (Exception e) {
+                    System.out.printf("   - 검증 결과 출력 중 오류: %s%n", e.getMessage());
+                    e.printStackTrace();
                 }
                 System.out.println();
+                System.out.flush(); // 검증 결과 출력 후 버퍼 강제 출력
 
                 // 검증 상태 및 실행 시간
                 long endTime = System.nanoTime();
@@ -168,10 +183,13 @@ public class Main {
                 long endTime = System.nanoTime();
                 double totalTimeMs = (endTime - startTime) / 1_000_000.0;
                 System.out.printf("❌ 오류 발생: %s (실행 시간: %.2f ms)%n", e.getMessage(), totalTimeMs);
+                System.out.println("오류 상세:");
                 e.printStackTrace();
+                System.out.flush(); // 버퍼 강제 출력
             }
 
             System.out.println();
+            System.out.flush(); // 각 파일 처리 후 버퍼 강제 출력
         }
 
         return processedSoFar + filenames.length;
